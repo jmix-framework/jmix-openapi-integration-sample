@@ -1,1 +1,551 @@
 = Integrating Applications Using OpenAPI
+
+OpenAPI is a standard specification for defining RESTful APIs. It helps in integrating systems by providing a clear, machine-readable format for API definitions, making it easier for different applications to understand and interact with each other.
+
+This guide features a hands-on example of integrating a Jmix application with an external REST service, using an OpenAPI schema. It provides step-by-step instructions that leverage both Jmix Studio features and manual coding to facilitate the implementation process. By the end, you will be prepared to implement OpenAPI-based integrations in your own projects.
+
+[[requirements]]
+== Requirements
+
+To effectively use this guide, you will need the following:
+
+. xref:ROOT:setup.adoc[Setup] the development environment.
+
+. Clone the fork of the https://github.com/jmix-framework/spring-petclinic-rest[spring-petclinic-rest^] sample project:
++
+[source,shell]
+----
+git clone https://github.com/jmix-framework/spring-petclinic-rest.git
+----
++
+We recommend using the fork instead of the original https://github.com/spring-petclinic/spring-petclinic-rest[project^] to ensure reproducibility of the guide. We periodically update the fork to keep it in sync with the original.
+
+. If you don't want to follow the guide step-by-step, you can download or clone the https://github.com/jmix-framework/jmix-openapi-integration-sample[completed sample project^]:
++
+[source,shell]
+----
+git clone https://github.com/jmix-framework/jmix-openapi-integration-sample.git
+----
++
+This will allow you to explore the finished implementation and experiment with the functionality right away
+
+[[what-we-are-going-to-build]]
+== What We Are Going to Build
+
+The Spring PetClinic REST sample application used in this guide is a variation of the well-known Spring PetClinic sample. Unlike the original project, it provides a REST API without any user interface. The Spring PetClinic domain model includes Pets, Owners, Vets, Specialties and other entities.
+
+You will create a sample Jmix application to manage information about advanced training for veterinarians. It will be integrated with Spring PetClinic REST application and provide the following features:
+
+* CRUD user interface for managing `Specialty` and `Vet` entities of Spring PetClinic through its REST API.
+
+* `Training` entity that manages information about training sessions and contains links to `Specialty` and `Vet` from Spring PetClinic.
+
+.Sample applications
+image::intro/systems.svg[]
+
+The Veterinary Training application will mirror a part of the PetClinic data model that is involved in the integration: `Specialty` and `Vet` entities. They will be represented by Jmix DTO entities and used in the `Training` JPA entity:
+
+.Data models
+image::intro/data-model.svg[]
+
+[[preparation]]
+== Preparation
+
+[[start-spring-petclinic-rest]]
+=== Start Spring PetClinic REST
+
+Open terminal in the `spring-petclinic-rest` directory and execute:
+
+[source,shell]
+----
+./mvnw spring-boot:run
+----
+
+When the application is ready to accept requests, you will see the following message in the console:
+
+[source]
+----
+INFO  PetClinicApplication - Started PetClinicApplication in 3.086 seconds (process running for 3.327)
+----
+
+Open http://localhost:9966/petclinic/api/specialties[^] in your web browser. You should see the JSON array representing `Specialty` instances.
+
+By default, the Spring PetClinic REST application does not require authentication. Later in this guide we'll turn the authentication on and make relevant changes in the integration code.
+
+Open http://localhost:9966/petclinic/v3/api-docs[^]. You should see the Spring PetClinic OpenAPI schema in JSON format.
+
+[[create-project]]
+=== Create Project
+
+Create a new Jmix project using the *Full-Stack Application (Java)* template.
+
+Use `vet-training` as a project name and `com.company.vettraining` as a base package.
+
+[[copy-schema-into-project]]
+=== Copy Schema into Project
+
+Copy `spring-petclinic-rest/src/main/resources/openapi.yml` file to `vet-training/src/main/resources` and rename it to `petclinic-openapi.yml`.
+
+The OpenAPI schema of the PetClinic application must be present in the Veterinary Training project as a YAML or JSON file.
+
+[[generating-api-client]]
+== Generating API Client
+
+The first step in the integration process is to generate Java client classes from the OpenAPI schema of the PetClinic application.
+
+* In the Jmix tool window, select *New* -> *Advanced* -> *OpenAPI Client*. The *Create OpenAPI Client* wizard will open.
+
+* On the first *General* step, select the `petclinic-openapi.yml` file in the *Schema file* field and enter `petclinic` in the *Client name* field.
++
+Make sure that both *Package for generated sources* and *Package for Spring configuration* fields have the `com.company.vettraining.petclinic` value.
+
+* On the next *Generator Options* step, keep the suggested suffixes: `Model` for model class names and `Api` for API class names.
+
+* On the last *Summary* step, review the information about project changes and click *Create*.
+
+Studio adds the https://github.com/OpenAPITools/openapi-generator[OpenAPI generator^] task to `build.gradle`:
+
+[source,groovy]
+----
+include::example$build.gradle[tags=doc]
+----
+
+And runs the `openApiGeneratePetclinic` task to create API client sources in the `build/generated/openapi/petclinic` directory.
+
+The task will be executed each time the project is built.
+
+Apart from the client sources in `build/generated`, Studio creates a Spring configuration class that exposes API client as a set of beans:
+
+[source,java]
+.src/main/java/com/company/vettraining/petclinic/PetclinicClientConfiguration.java
+----
+include::example$src/main/java/com/company/vettraining/petclinic/PetclinicClientConfiguration.java[tags=configuration]
+----
+
+The Jmix tool window will show the generated client API and model classes in the *OpenAPI* node:
+
+.Jmix tool window OpenAPI node
+image::generate-client/openapi-node.png[width=335]
+
+[[creating-entities-and-mappers]]
+== Creating Entities and Mappers
+
+External data should be represented by Jmix entities in order to be incorporated into the application data model and shown in Jmix UI. Instead of directly using API model objects in the UI and business logic, it is recommended to create an additional layer of xref:data-model:entities.adoc#dto[DTO entities] and mappers corresponding to API model classes.
+
+A separate layer of Jmix entities and mappers offers several benefits compared to directly using API model classes.
+
+First, it provides a clear separation between the external data model and the internal application logic, allowing you to adapt the external data to fit the specific needs of your application. This enhances maintainability by isolating external API changes from core business logic, reducing the risk of breaking changes.
+
+API model classes are designed to represent data as defined by the external service, which may not always align well with the needs of your application. There can be potential issues with data types and associations that are used in API model classes, making them unsuitable for direct use. By creating a mapping layer, you have the flexibility to transform and adapt the data to suit your application's specific requirements.
+
+Additionally, using a dedicated Jmix entity layer allows you to fully integrate external data into the Jmix ecosystem. You can add Jmix-specific annotations, such as `@InstanceName` or `@Composition`, to enhance the application's functionality. This is not possible with API model classes directly, as they are re-generated on each project build, causing any custom changes to be lost.
+
+Jmix Studio provides sophisticated tooling for automatic creation of xref:data-model:entities.adoc#dto[DTO entities] and mappers for API model classes.
+
+In this section, you will create DTO entities and mappers for the `SpecialtyModel` and `VetModel` API classes.
+
+[[model-mapping-wizard]]
+=== Model Mapping Wizard
+
+* Select *OpenAPI* -> *petclinic* -> *Model* node in the Jmix tool window and click *Model Mapping* in its context menu:
++
+.Model Mapping command
+image::create-entities/model-mapping-command.png[width=285]
++
+The *Model Mapping* wizard will start.
+
+* On the first step of the wizard, select `SpecialtyModel` and `VetModel` classes in the list:
++
+.Selecting model classes to map
+image::create-entities/select-model-classes.png[width=750]
+
+* On the second step, click *Create All* button to create entities and mappers for the selected model classes automatically. You will see the names of created mappers in the second column:
++
+.Creating entities and mappers automatically
+image::create-entities/create-mappings.png[width=750]
+
+* Click on *SpecialtyMapper*. The *New MapStruct Mapper* window will open:
++
+.Mapper for SpecialtyModel
+image::create-entities/specialty-mapper.png[width=557]
++
+The window shows the fully-qualified name of the corresponding entity and the mapper class name.
+
+* You need to check and adjust parameters of the created entity. Click the edit button next to the *Jmix entity* field. The *New Jmix Entity* window will open. Select the `id` attribute as an identifier:
++
+.Specialty entity parameters
+image::create-entities/specialty-entity.png[width=831]
+
+* Click on *VetMapper* in the *Model Mapping* window, then edit the `Vet` entity. Select the `id` attribute as an identifier. Check that the `specialties` attribute is mapped as a list of `Specialty` entity:
++
+.Vet entity parameters
+image::create-entities/vet-entity.png[width=831]
+
+* When you click the *Create* button in the *Model Mapping* window, Studio will create `Specialty` and `Vet` DTO entities, as well as `SpecialtyMapper` and `VetMapper` classes.
++
+The *OpenAPI* -> *petclinic* -> *Model* nodes of the Jmix tool window will display related entities and mappers:
++
+.Model nodes with mappings
+image::create-entities/model-nodes.png[width=232]
+
+[[defining-instance-names]]
+=== Defining Instance Names
+
+Since the `Specialty` and `Vet` entities will be displayed in UI, it is necessary to define their xref:data-model:entities.adoc#instance-name[instance names]. Instance names provide a human-readable representation of entity instances, which is crucial for displaying references to entities in the UI. You can define instance names manually in the entity source code or by using the entity designer.
+
+[source,java]
+.src/main/java/com/company/vettraining/entity/petclinic/Specialty.java
+----
+include::example$src/main/java/com/company/vettraining/entity/petclinic/Specialty.java[tags=entity]
+----
+
+[source,java]
+.src/main/java/com/company/vettraining/entity/petclinic/Vet.java
+----
+include::example$src/main/java/com/company/vettraining/entity/petclinic/Vet.java[tags=entity]
+----
+
+[[exploring-mappers]]
+=== Exploring Mappers
+
+Mappers created by Studio use the https://mapstruct.org/[MapStruct^] library. MapStruct is an annotation-based code generator that integrates with the Java compiler to create efficient mapping code at compile-time using plain method invocations. This approach ensures high performance and reduces boilerplate code, making it easier to maintain mappings while providing flexibility in adapting the data model.
+
+The mappers between API models and DTO entities look as follows:
+
+[source,java]
+.src/main/java/com/company/vettraining/petclinic/mapper/VetMapper.java
+----
+include::example$src/main/java/com/company/vettraining/petclinic/mapper/VetMapper.java[]
+----
+<1> `toModel()` method maps Jmix DTO entity to API model object
+<2> `toEntity()` method maps API model object to Jmix DTO entity
+<3> This method is invoked by MapStruct automatically after mapping from model to entity. It resets the "new" state of the created instance.
+
+Jmix UI relies on the internal "new" flag of entities to differentiate between instances created in memory and those loaded from external storage. The mapper sets this flag to `false` after creating an entity instance from a model object.
+
+[[creating-services]]
+== Creating Services
+
+The OpenAPI generator creates a set of classes representing the API endpoints, such as `VetApi`, `PetApi`, etc. Methods of these classes correspond to the OpenAPI schema paths and operate with API model classes.
+
+Using these classes directly in application logic has several disadvantages:
+
+* The classes expose more public methods than needed for the application.
+* The methods use API model types for parameters and results, while business logic and UI operate with Jmix entities.
+
+To address these issues, it is recommended to create intermediary services that convert data between entities and API model classes and delegate to API endpoint classes. These services provide a clear and concise API for accessing external data, improving maintainability and reducing the risk of errors.
+
+Jmix Studio includes a wizard that helps create such beans automatically by selecting required methods from API endpoint classes.
+
+In this section, you will create intermediate services for the `SpecialtyApi` and `VetApi` classes.
+
+[[service-creation-wizard]]
+=== Service Creation Wizard
+
+* Select *OpenAPI* -> *petclinic* -> *API* -> *SpecialtyApi* node in the Jmix tool window and click *Model Mapping* in its context menu:
++
+.Create Service command
+image::create-services/create-service-menu.png[width=281]
+
+* Accept suggested package and class name in the *New Service* dialog:
++
+.New Service dialog
+image::create-services/new-service.png[width=370]
+
+* In the *Delegate Methods* dialog, select CRUD methods for `SpecialtyModel`:
++
+--
+** `addSpecialty()`
+** `deleteSpecialty()`
+** `getSpecialty()`
+** `listSpecialties()`
+** `updateSpecialty()`
+--
++
+.Delegate Methods dialog
+image::create-services/delegate-methods.png[width=897]
++
+For each selected method of the API endpoint class, the wizard will create a service method which will use a Jmix entity instead of an API model class.
+
+The resulting service will look as follows:
+
+[source,java]
+.src/main/java/com/company/vettraining/petclinic/service/SpecialtyService.java
+----
+include::example$src/main/java/com/company/vettraining/petclinic/service/SpecialtyService.java[tags=service]
+----
+
+As you can see, Studio has generated code that converts data between Jmix entities and API models using mappers and delegates to the API endpoint class. The service method parameters and results are of the entity type and can be easily used in the application logic and UI.
+
+After creating `SpecialtyService` for `SpecialtyApi`, create `VetService` for `VetApi` by using the same wizard and select `addVet()`, `deleteVet()`, `getVet()`, `listVets()`, `updateVet()` methods.
+
+[[adjusting-services]]
+=== Adjusting Services
+
+In some cases, the automatically generated conversion and delegation code may be insufficient. For example, the PetClinic API returns null from the `updateSpecialty()` method, despite declaring it returns an updated instance. You will need to manually adjust the `updateSpecialty()` service method to handle this inconsistency:
+
+[source,java,indent=0]
+.src/main/java/com/company/vettraining/petclinic/service/SpecialtyService.java
+----
+include::example$src/main/java/com/company/vettraining/petclinic/service/SpecialtyService.java[tags=update]
+----
+<1> If the API returns null instead of the updated model, reload it by ID.
+
+Make the same modification in the `VetService` class:
+
+[source,java,indent=0]
+.src/main/java/com/company/vettraining/petclinic/service/VetService.java
+----
+include::example$src/main/java/com/company/vettraining/petclinic/service/VetService.java[tags=update]
+----
+
+[[creating-views]]
+== Creating Views
+
+One of the key objectives of this integration is to manage `Specialty` and `Vet` entities from the PetClinic application through the Veterinary Training application's UI. In this section, you will create CRUD views that use the services developed earlier for data loading and saving.
+
+[[specialty-views]]
+=== Specialty Views
+
+Select the `Specialty` entity in the Jmix tool window and click *New* -> *View* in its context menu. Select *DTO entity list and detail views* template and accept all parameters on the next steps of the view creation wizard.
+
+Open `SpecialtyListView` class and add code that invokes `SpecialtyService` methods in the delegate handlers:
+
+[source,java]
+.src/main/java/com/company/vettraining/view/specialty/SpecialtyListView.java
+----
+include::example$src/main/java/com/company/vettraining/view/specialty/SpecialtyListView.java[tags=view]
+----
+
+Open `SpecialtyDetailView` and do the same for its delegate handlers:
+
+[source,java]
+.src/main/java/com/company/vettraining/view/specialty/SpecialtyDetailView.java
+----
+include::example$src/main/java/com/company/vettraining/view/specialty/SpecialtyDetailView.java[tags=view]
+----
+
+In the `specialty-detail-view.xml`, either remove the text field for the `id` attribute or disable it, as it should not be entered by the user.
+
+Now you can run the application and test the `Specialty` views:
+
+.Specialty list view
+image::create-views/specialty-list-view.png[]
+
+[[vet-views]]
+=== Vet Views
+
+Create DTO list and detail views for the `Vet` entity in the same way as for `Specialty` above and use `VetService` in delegate handlers. Remove or disable the text field for the `id` attribute in `vet-detail-view.xml`.
+
+In the PetClinic API, `VetModel` includes a list of `SpecialtyModel`, representing the specialties of the veterinarian. The API loads specialties along with a vet and updates them when the vet is updated.
+
+The `Vet` Jmix entity has a collection of the `Specialty` entity in the `specialties` attribute, aligning with the API model. To manage this relationship, add a `multiSelectComboBox` component to the `Vet` detail view layout:
+
+[source,xml,indent=0]
+.src/main/resources/com/company/vettraining/view/vet/vet-detail-view.xml
+----
+include::example$src/main/resources/com/company/vettraining/view/vet/vet-detail-view.xml[tags=fields]
+----
+
+The new field will be bound to the `specialties` attribute of the `Vet` entity located in the `vetDc` data container.
+
+In order to provide the list of available options to the `multiSelectComboBox` component, define its `itemsFetchCallback` handler as follows:
+
+[source,java,indent=0]
+.src/main/java/com/company/vettraining/view/vet/VetDetailView.java
+----
+include::example$src/main/java/com/company/vettraining/view/vet/VetDetailView.java[tags=fetch-specialties]
+----
+<1> Get the list of specialties from `SpecialtyService` and filter it according to the user input.
+
+This allows users to select specialties when editing a veterinarian:
+
+.Vet detail view
+image::create-views/vet-detail-view.png[]
+
+[[linking-jpa-and-dto-entities]]
+== Linking JPA and DTO Entities
+
+The main objective of the Veterinary Training application is to manage trainings using the information about specialties and vets from Spring PetClinic.
+
+In this section, you will create the `Training` JPA entity, which will be stored in the Veterinary Training database and will include links to the `Specialty` and `Vet` DTO entities. Users will be able to manage training sessions in the UI as though all the information were stored in a single database.
+
+[[training-entity]]
+=== Training Entity
+
+Create a new JPA entity called `Training` and add the following attributes:
+
+[width=50%]
+|===
+|Name |Type
+
+|date
+|LocalDate
+
+|description
+|String
+
+|specialtyId
+|Integer
+
+|vetId
+|Integer
+|===
+
+The `specialtyId` and `vetId` attributes will store specialty and vet IDs in the database.
+
+Now create transient attributes referencing the `Specialty` and `Vet` DTO entities. When creating the attribute, select `ASSOCIATION` in *Attribute type*, then click *Transient* checkbox and select DTO entity in the *Type* dropdown:
+
+.Specialty attribute
+image::linking-entities/specialty-attr.png[width=750]
+
+Do the same to create the `vet` attribute.
+
+The `Training` entity source code should look as follows:
+
+[source,java]
+.src/main/java/com/company/vettraining/entity/Training.java
+----
+include::example$src/main/java/com/company/vettraining/entity/Training.java[tags=entity]
+----
+
+[[handling-transient-attributes]]
+=== Handling Transient Attributes
+
+When the `Training` entity is loaded from the database, the `specialty` and `vet` transient attributes are initially empty and must be populated with DTO entities. Upon saving the `Training` entity, the `specialtyId` and `vetId` persistent attributes should be updated with the IDs of the selected `Vet` and `Specialty` entities.
+
+This can be done using the `EntityLoadingEvent` and `EntitySavingEvent` xref:data-access:entity-events.adoc#saving-loading-events[listeners].
+
+Click *New* -> *Event Listener* in the Jmix tool window, select *Entity Event* on the first step of the *Subscribe to Event* wizard and click *Next*.
+
+On the second step of the wizard, select the `Training` entity and *Entity Loading* and *Entity Saving* checkboxes:
+
+.Creating entity event listeners
+image::linking-entities/event-listeners.png[width=538]
+
+Inject `SpecialtyService` and `VetService` to the created bean and implement the listener methods as follows:
+
+[source,java]
+.src/main/java/com/company/vettraining/listener/TrainingEventListener.java
+----
+include::example$src/main/java/com/company/vettraining/listener/TrainingEventListener.java[tags=doc]
+----
+
+Upon loading the `Training` entity, the `onTrainingLoading()` method will invoke the services to load `Specialty` and `Vet` entities from the PetClinic application.
+
+[[training-views]]
+=== Training Views
+
+Select the `Training` entity in Jmix tool window and click *New* -> *View* in its context menu. Select the *Entity list and detail views* template and accept all parameters on the next steps of the view creation wizard. Select `specialty` and `vet` attributes in the fetch plans for both list and detail views:
+
+image::linking-entities/training-fetch-plan.png[width=538]
+
+These attributes are transient, so including them in the fetch plan does not affect data loading but allows Studio to add corresponding data grid columns and form fields to the view layouts.
+
+After generating views from templates, further customization is required to correctly handle references to `Specialty` and `Vet`.
+
+In the list view, the only required change is to remove the columns containing IDs. Open `training-list-view.xml` and remove the `specialtyId` and `vetId` columns from `trainingsDataGrid`.
+
+In the detail view, you need to add combo-boxes to select related `Specialty` and `Vet` entities. The `Vet` combo-box options should depend on the selected `Specialty` and display only veterinarians with that specialty.
+
+Open `training-detail-view.xml`, remove `specialtyIdField` and `vetIdField`, and then add the `vetsDc` collection container along with the `specialtyField` and `vetField` components as shown below:
+
+[source,xml]
+.src/main/resources/com/company/vettraining/view/training/training-detail-view.xml
+----
+include::example$src/main/resources/com/company/vettraining/view/training/training-detail-view.xml[]
+----
+
+The `vetField` combo-box will obtain its options from the `vetsDc` collection container. To load `Vet` DTO entities into this container, generate a load delegate for the `vetsDl` data loader and implement it as follows:
+
+[source,java,indent=0]
+.src/main/java/com/company/vettraining/view/training/TrainingDetailView.java
+----
+include::example$src/main/java/com/company/vettraining/view/training/TrainingDetailView.java[tags=load-vets]
+----
+
+Options for `specialtyField` can be loaded similarly into a dedicated collection data container, or more efficiently by using an items fetch callback method. Use the latter approach:
+
+[source,java,indent=0]
+.src/main/java/com/company/vettraining/view/training/TrainingDetailView.java
+----
+include::example$src/main/java/com/company/vettraining/view/training/TrainingDetailView.java[tags=load-specialties]
+----
+
+The final step is to ensure that the list of veterinarians is refreshed each time the user selects a different specialty. You can achieve this by creating a handler for the `ItemPropertyChangeEvent` of the `trainingDc` data container:
+
+[source,java,indent=0]
+.src/main/java/com/company/vettraining/view/training/TrainingDetailView.java
+----
+include::example$src/main/java/com/company/vettraining/view/training/TrainingDetailView.java[tags=reload-vets]
+----
+
+Now you can start the application and test the creation of training sessions:
+
+image::linking-entities/create-training.png[]
+
+[[handling-authentication]]
+== Handling Authentication
+
+In the final step of this guide, we will enable authentication in the PetClinic REST application, update the OpenAPI schema, and address it in the client code.
+
+* Stop the PetClinic application and start it again using the following command:
++
+[source,shell]
+----
+./mvnw spring-boot:run -Dspring-boot.run.arguments="--petclinic.security.enable=true"
+----
++
+The PetClinic REST endpoints now require HTTP Basic authentication. The application has a single user with the username `admin` and the password `admin`.
+
+* Make sure that when you open http://localhost:9966/petclinic/api/specialties[^] in your web browser, it prompts you for your username and password. Enter `admin` for both.
+
+* In the `petclinic-openapi.yaml` file, add `securitySchemes` section to `components` and `security` section to the root:
++
+[source,yaml]
+.src/main/resources/petclinic-openapi.yml
+----
+# ...
+components:
+  schemas:
+  # ...
+  securitySchemes:
+    basic:
+      description: Basic HTTP Authentication
+      type: http
+      scheme: Basic
+security:
+  - basic: []
+----
++
+This will indicate that all OpenAPI paths use the HTTP Basic authentication.
+
+* In `PetclinicClientConfiguration`, supply the credentials to the `ApiClient` object:
++
+[source,java]
+.src/main/java/com/company/vettraining/petclinic/PetclinicClientConfiguration.java
+----
+@Bean("petclinicApiClient")
+public ApiClient apiClient() {
+    ApiClient apiClient = new ApiClient();
+    apiClient.setUsername("admin");
+    apiClient.setPassword("admin");
+    return apiClient;
+}
+----
+
+After restarting the Veterinary Training application, the OpenAPI generator Gradle task will update the client sources according to the schema changes and use the provided credentials when invoking the PetClinic REST API.
+
+
+[[summary]]
+== Summary
+
+In this guide, you learned how to integrate a Jmix application with an external REST service using OpenAPI.
+
+We created an additional layer of Jmix entities and mappers to effectively manage external data, and intermediate services for better integration and maintainability.
+
+All of these tasks were accomplished with the assistance of Jmix Studio, which provided sophisticated tooling for generating DTO entities, mappers, and services, significantly reducing manual work.
+
+Finally, we built CRUD views for managing external data, linked JPA and DTO entities to implement a xref:concepts:principles.adoc#unified-data-model[unified data model], and refined the UI to handle entity relationships effectively.
+
+By following this guide, you are now equipped to implement similar OpenAPI-based integrations in your own projects.

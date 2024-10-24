@@ -3,6 +3,9 @@
 
     <menu id="application" title="msg://com.company.vettraining/menu.application.title" opened="true">
         <item view="User.list" title="msg://com.company.vettraining.view.user/UserListView.title"/>
+        <item view="Specialty.list" title="msg://com.company.vettraining.view.specialty/specialtyListView.title"/>
+        <item view="Vet.list" title="msg://com.company.vettraining.view.vet/vetListView.title"/>
+        <item view="Training.list" title="msg://com.company.vettraining.view.training/trainingListView.title"/>
     </menu>
 
 </menu-config>
