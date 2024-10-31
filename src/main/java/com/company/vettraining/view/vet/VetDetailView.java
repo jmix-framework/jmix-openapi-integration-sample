@@ -7,6 +7,7 @@ import com.company.vettraining.petclinic.service.VetService;
 import com.company.vettraining.view.main.MainView;
 import com.vaadin.flow.data.provider.Query;
 import com.vaadin.flow.router.Route;
+import io.jmix.core.EntityStates;
 import io.jmix.core.LoadContext;
 import io.jmix.core.SaveContext;
 import io.jmix.flowui.view.*;
@@ -30,6 +31,9 @@ public class VetDetailView extends StandardDetailView<Vet> {
 
     // end::fetch-specialties[]
 
+    @Autowired
+    private EntityStates entityStates;
+
     @Install(to = "vetDl", target = Target.DATA_LOADER)
     private Vet customerDlLoadDelegate(final LoadContext<Vet> loadContext) {
         Object id = loadContext.getId();
@@ -39,7 +43,9 @@ public class VetDetailView extends StandardDetailView<Vet> {
     @Install(target = Target.DATA_CONTEXT)
     private Set<Object> saveDelegate(final SaveContext saveContext) {
         Vet entity = getEditedEntity();
-        Vet saved = vetService.updateVet(entity.getId(), entity);
+        Vet saved = entityStates.isNew(entity) ?
+                vetService.addVet(entity) :
+                vetService.updateVet(entity.getId(), entity);
         return Set.of(saved);
     }
 
