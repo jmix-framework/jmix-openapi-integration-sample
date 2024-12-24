@@ -27,7 +27,7 @@ We recommend using the fork instead of the original https://github.com/spring-pe
 git clone https://github.com/jmix-framework/jmix-openapi-integration-sample.git
 ----
 +
-This will allow you to explore the finished implementation and experiment with the functionality right away
+This will allow you to explore the finished implementation and experiment with the functionality right away.
 
 [[what-we-are-going-to-build]]
 == What We Are Going to Build
@@ -491,9 +491,16 @@ In the final step of this guide, we will enable authentication in the PetClinic 
 
 * Stop the PetClinic application and start it again using the following command:
 +
+.Linux and macOS
 [source,shell]
 ----
 ./mvnw spring-boot:run -Dspring-boot.run.arguments="--petclinic.security.enable=true"
+----
++
+.Windows
+[source,shell]
+----
+mvnw spring-boot:run "-Dspring-boot.run.arguments=--petclinic.security.enable=true"
 ----
 +
 The PetClinic REST endpoints now require HTTP Basic authentication. The application has a single user with the username `admin` and the password `admin`.
