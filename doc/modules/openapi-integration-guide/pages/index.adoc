@@ -1,3 +1,5 @@
+:sample-project: jmix-openapi-integration-sample
+
 = Integrating Applications Using OpenAPI
 
 OpenAPI is a standard specification for defining RESTful APIs. It helps in integrating systems by providing a clear, machine-readable format for API definitions, making it easier for different applications to understand and interact with each other.
@@ -20,14 +22,18 @@ git clone https://github.com/jmix-framework/spring-petclinic-rest.git
 +
 We recommend using the fork instead of the original https://github.com/spring-petclinic/spring-petclinic-rest[project^] to ensure reproducibility of the guide. We periodically update the fork to keep it in sync with the original.
 
-. If you don't want to follow the guide step-by-step, you can download or clone the https://github.com/jmix-framework/jmix-openapi-integration-sample[completed sample project^]:
+. You can follow the guide step-by-step, or get the completed sample project to explore the finished implementation and experiment with the functionality.
+
+* Either https://github.com/jmix-framework/{sample-project}/archive/refs/heads/{page-origin-branch}.zip[download^] and unzip the source repository
+
+* Or clone it and switch to the `{page-origin-branch}` branch:
 +
-[source,shell]
+[source,subs=attributes+]
 ----
-git clone https://github.com/jmix-framework/jmix-openapi-integration-sample.git
+git clone https://github.com/jmix-framework/{sample-project}
+cd {sample-project}
+git checkout {page-origin-branch}
 ----
-+
-This will allow you to explore the finished implementation and experiment with the functionality right away.
 
 [[what-we-are-going-to-build]]
 == What We Are Going to Build
