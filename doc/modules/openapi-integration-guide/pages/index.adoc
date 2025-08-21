@@ -4,7 +4,7 @@
 
 OpenAPI is a standard specification for defining RESTful APIs. It helps in integrating systems by providing a clear, machine-readable format for API definitions, making it easier for different applications to understand and interact with each other.
 
-This guide features a hands-on example of integrating a Jmix application with an external REST service, using an OpenAPI schema. It provides step-by-step instructions that leverage both Jmix Studio features and manual coding to facilitate the implementation process. By the end, you will be prepared to implement OpenAPI-based integrations in your own projects.
+This guide features a hands-on example of integrating a Jmix application with an external REST service, using an OpenAPI schema. It provides step-by-step instructions that leverage both xref:studio:openapi-client.adoc[Jmix Studio features] and manual coding to facilitate the implementation process. By the end, you will be prepared to implement OpenAPI-based integrations in your own projects.
 
 [[requirements]]
 == Requirements
