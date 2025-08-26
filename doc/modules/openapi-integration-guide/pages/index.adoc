@@ -248,7 +248,7 @@ In this section, you will create intermediate services for the `SpecialtyApi` an
 [[service-creation-wizard]]
 === Service Creation Wizard
 
-* Select *OpenAPI* -> *petclinic* -> *API* -> *SpecialtyApi* node in the Jmix tool window and click *Model Mapping* in its context menu:
+* Select *OpenAPI* -> *petclinic* -> *API* -> *SpecialtyApi* node in the Jmix tool window and click *Create Service* in its context menu:
 +
 .Create Service command
 image::create-services/create-service-menu.png[width=281]
