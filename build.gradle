@@ -60,14 +60,12 @@ dependencies {
 
     // tag::doc[]
     implementation 'org.openapitools:jackson-databind-nullable:0.2.10'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.2'
     implementation 'org.mapstruct:mapstruct:1.6.1'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.1'
 }
 
 sourceSets {
     main.java.srcDirs += "$buildDir/generated/openapi/petclinic/src/main/java"
-    main.java.srcDirs += "$buildDir/generated/openapi/petclinic3/src/main/java"
 }
 // ...
 // end::doc[]
