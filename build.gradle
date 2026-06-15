@@ -67,6 +67,7 @@ dependencies {
 
 sourceSets {
     main.java.srcDirs += "$buildDir/generated/openapi/petclinic/src/main/java"
+    main.java.srcDirs += "$buildDir/generated/openapi/petclinic3/src/main/java"
 }
 // ...
 // end::doc[]
@@ -97,7 +98,8 @@ idea {
 
 // tag::doc[]
 tasks.register('openApiGeneratePetclinic', GenerateTask) {
-    inputSpec = "$rootDir/src/main/resources/petclinic-openapi.yml"
+    // see https://openapi-generator.tech/docs/generators/java
+    inputSpec = "$projectDir/src/main/resources/petclinic-openapi.yml"
     outputDir = "$buildDir/generated/openapi/petclinic/"
     generatorName = "java"
     library = "restclient"

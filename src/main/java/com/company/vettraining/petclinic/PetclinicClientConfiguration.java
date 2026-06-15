@@ -1,14 +1,6 @@
 package com.company.vettraining.petclinic;
 
-import com.company.vettraining.petclinic.ApiClient;
-import com.company.vettraining.petclinic.api.FailingApi;
-import com.company.vettraining.petclinic.api.OwnerApi;
-import com.company.vettraining.petclinic.api.PetApi;
-import com.company.vettraining.petclinic.api.VisitApi;
-import com.company.vettraining.petclinic.api.PettypesApi;
-import com.company.vettraining.petclinic.api.SpecialtyApi;
-import com.company.vettraining.petclinic.api.VetApi;
-import com.company.vettraining.petclinic.api.UserApi;
+import com.company.vettraining.petclinic.api.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,47 +16,57 @@ public class PetclinicClientConfiguration {
         return new ApiClient();
     }
 
-    @Bean("petclinicFailingApi")
-    public FailingApi failingApi(ApiClient apiClient) {
-        return new FailingApi(apiClient);
+    @Bean("petclinic_OopsApi")
+    public OopsApi oopsApi(ApiClient apiClient) {
+        return new OopsApi(apiClient);
     }
 
-    @Bean("petclinicOwnerApi")
-    public OwnerApi ownerApi(ApiClient apiClient) {
-        return new OwnerApi(apiClient);
+    @Bean("petclinic_OwnersApi")
+    public OwnersApi ownersApi(ApiClient apiClient) {
+        return new OwnersApi(apiClient);
     }
 
     // ...
     // end::configuration[]
 
-    @Bean("petclinicPetApi")
-    public PetApi petApi(ApiClient apiClient) {
-        return new PetApi(apiClient);
+    @Bean("petclinic_OwnerV2Api")
+    public OwnerV2Api ownerV2Api(ApiClient apiClient) {
+        return new OwnerV2Api(apiClient);
     }
 
-    @Bean("petclinicVisitApi")
-    public VisitApi visitApi(ApiClient apiClient) {
-        return new VisitApi(apiClient);
+    @Bean("petclinic_PetsApi")
+    public PetsApi petsApi(ApiClient apiClient) {
+        return new PetsApi(apiClient);
     }
 
-    @Bean("petclinicPettypesApi")
+    @Bean("petclinic_PetV2Api")
+    public PetV2Api petV2Api(ApiClient apiClient) {
+        return new PetV2Api(apiClient);
+    }
+
+    @Bean("petclinic_VisitsApi")
+    public VisitsApi visitsApi(ApiClient apiClient) {
+        return new VisitsApi(apiClient);
+    }
+
+    @Bean("petclinic_PettypesApi")
     public PettypesApi pettypesApi(ApiClient apiClient) {
         return new PettypesApi(apiClient);
     }
 
-    @Bean("petclinicSpecialtyApi")
-    public SpecialtyApi specialtyApi(ApiClient apiClient) {
-        return new SpecialtyApi(apiClient);
+    @Bean("petclinic_SpecialtiesApi")
+    public SpecialtiesApi specialtiesApi(ApiClient apiClient) {
+        return new SpecialtiesApi(apiClient);
     }
 
-    @Bean("petclinicVetApi")
-    public VetApi vetApi(ApiClient apiClient) {
-        return new VetApi(apiClient);
+    @Bean("petclinic_VetsApi")
+    public VetsApi vetsApi(ApiClient apiClient) {
+        return new VetsApi(apiClient);
     }
 
-    @Bean("petclinicUserApi")
-    public UserApi userApi(ApiClient apiClient) {
-        return new UserApi(apiClient);
+    @Bean("petclinic_UsersApi")
+    public UsersApi usersApi(ApiClient apiClient) {
+        return new UsersApi(apiClient);
     }
 }
 
