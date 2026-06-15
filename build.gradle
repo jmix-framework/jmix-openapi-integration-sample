@@ -8,7 +8,7 @@ plugins {
     id 'java'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.9'
     // tag::doc[]
-    id 'org.openapi.generator' version '7.15.0'
+    id 'org.openapi.generator' version '7.23.0'
 }
 // ...
 // end::doc[]
@@ -59,7 +59,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-jdbc-test'
 
     // tag::doc[]
-    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.10'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.2'
     implementation 'org.mapstruct:mapstruct:1.6.1'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.1'
@@ -98,9 +98,8 @@ idea {
 
 // tag::doc[]
 tasks.register('openApiGeneratePetclinic', GenerateTask) {
-    // see https://openapi-generator.tech/docs/generators/java
-    inputSpec = "$projectDir/src/main/resources/petclinic-openapi.yml"
-    outputDir = "$buildDir/generated/openapi/petclinic/"
+    inputSpec = layout.projectDirectory.file("src/main/resources/petclinic-openapi.yml")
+    outputDir = layout.buildDirectory.dir("generated/openapi/petclinic")
     generatorName = "java"
     library = "restclient"
     packageName = "com.company.vettraining.petclinic"
@@ -112,7 +111,9 @@ tasks.register('openApiGeneratePetclinic', GenerateTask) {
     skipValidateSpec = true
     configOptions.set([
             useRuntimeException: "true",
-            useJakartaEe       : "true"
+            useJakartaEe       : "true",
+            useSpringBoot4     : "true",
+            useJackson3        : "true"
     ])
 }
 compileJava.dependsOn tasks.named("openApiGeneratePetclinic")
