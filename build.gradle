@@ -4,11 +4,11 @@ import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 plugins {
     // ...
     // end::doc[]
-    id 'io.jmix' version '2.8.1'
+    id 'io.jmix' version '3.0.0-M5'
     id 'java'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.9'
     // tag::doc[]
-    id 'org.openapi.generator' version '7.8.0'
+    id 'org.openapi.generator' version '7.23.0'
 }
 // ...
 // end::doc[]
@@ -17,7 +17,7 @@ apply plugin: 'org.springframework.boot'
 apply plugin: 'com.vaadin'
 
 jmix {
-    bomVersion = '2.8.1'
+    bomVersion = '3.0.999-SNAPSHOT'
 }
 
 group = 'com.company'
@@ -26,7 +26,7 @@ version = '0.0.1-SNAPSHOT'
 repositories {
     mavenCentral()
     maven {
-        url 'https://global.repo.jmix.io/repository/public'
+        url = 'https://nexus.jmix.io/repository/public'
     }
 }
 
@@ -55,8 +55,11 @@ dependencies {
     }
     testImplementation 'io.jmix.flowui:jmix-flowui-test-assist'
 
+    implementation 'com.vaadin:vaadin-dev'
+    testImplementation 'org.springframework.boot:spring-boot-jdbc-test'
+
     // tag::doc[]
-    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.10'
     implementation 'org.mapstruct:mapstruct:1.6.1'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.1'
 }
@@ -68,8 +71,8 @@ sourceSets {
 // end::doc[]
 
 configurations.implementation {
-    exclude group: 'com.vaadin', module:'hilla'
-    exclude group: 'com.vaadin', module:'hilla-dev'
+    exclude group: 'com.vaadin', module: 'hilla'
+    exclude group: 'com.vaadin', module: 'hilla-dev'
 }
 
 
@@ -79,6 +82,7 @@ test {
 
 vaadin {
     optimizeBundle = false
+    productionMode = false
 }
 
 idea {
@@ -92,8 +96,8 @@ idea {
 
 // tag::doc[]
 tasks.register('openApiGeneratePetclinic', GenerateTask) {
-    inputSpec = "$rootDir/src/main/resources/petclinic-openapi.yml"
-    outputDir = "$buildDir/generated/openapi/petclinic/"
+    inputSpec = layout.projectDirectory.file("src/main/resources/petclinic-openapi.yml")
+    outputDir = layout.buildDirectory.dir("generated/openapi/petclinic")
     generatorName = "java"
     library = "restclient"
     packageName = "com.company.vettraining.petclinic"
@@ -105,7 +109,9 @@ tasks.register('openApiGeneratePetclinic', GenerateTask) {
     skipValidateSpec = true
     configOptions.set([
             useRuntimeException: "true",
-            useJakartaEe       : "true"
+            useJakartaEe       : "true",
+            useSpringBoot4     : "true",
+            useJackson3        : "true"
     ])
 }
 compileJava.dependsOn tasks.named("openApiGeneratePetclinic")
